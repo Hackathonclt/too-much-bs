@@ -1,0 +1,158 @@
+I use the hadoop streaming framework with python to process data from Twitter and Foursquare.
+See streaming_commands for examples of how to run these commands.  Always run
+commands from inside the directory for a given script
+
+We do the following:
+Clean up twitter -- parse the raw JSON twitter feed, remove entries without a 'text' field,
+remove all non-ascii encodable characters and punctuation.  Condense all white space to a single space
+(this represents "canonical" form so tweet words can be tokenized).
+
+Find and deduplicate foursquare locations -- Given foursquare dumps of different cities
+find what location names are unique to only that city
+
+Location analysis -
+search every tweet for every foursquare venue unique to a city.
+Return
+i) what percentage of unique-city venues a tweeter tweets from that city
+(example -- tweeter tweets 4 times from Charlotte, once from Atlanta, once from Greensboro
+percentage = 4 / (4+1+1) = 2/3)
+ii) total number of unique-city venues a tweeter tweets.  Someone who
+tweets more places gives us more confidence (20/30 is better than 2/3)
+
+Sentiment analysis -
+search every tweet for every word in sentiment dictionary
+Add up the corresponding word scores for every tweet
+
+Word collocation -
+See
+https://cwiki.apache.org/MAHOUT/collocations.html
+http://tdunning.blogspot.com/2008/03/surprise-and-coincidence.html
+http://grepcode.com/file/repo1.maven.org/maven2/org.apache.mahout/mahout-math/0.3/org/apache/mahout/math/stats/LogLikelihood.java
+Use a statistical model to find words that occur together in tweets frequency (in same tweet,
+words need not be consecutive).
+Briefly, the model assumes that words occur as random events, but each word's independent
+probability of occuring might be different (some words are more popular than others).
+To consider 2 words, A and B
+Take P(A and B occur together), P(A occurs and not B), P(B occurs and not A), P(neither A nor B occur)
+The hadoop job generates these and uses them in a Log-Likelihood Ratio calculation
+See Collocation/LLR/README for a bit more detail
+
+-------------------------------------------------------
+
+this is a list of the jobs and how they work together.
+Make sure to chmod +x all of the mapper.py and reducer.py's
+
+prependCityName.py - take foursquare data and add the city to every line as the first column.  Felt this didn't need to be part of the big-data toolchain.  it could just as easily be a map (no reduce) task.
+
+
+hadoop data flow
+
+                  Twitter                                    Foursquare                      Twitter/CleanTweets (repeated)         SentimentDictionary
+                    |                                             |                                        \                              /
+            Twitter/CleanTweets                         Foursquare/CleanFoursquare                          \               Sentiment/TagSentiment
+           /         |            \                                /                                         \                    /
+         /           |          Twitter/TagTwitter       Foursquare/UniqueVenues                             Sentiment/CombineTweetsSentiment      
+       /             \                   \                        /                                                           |
+      /               \                   \              Foursquare/TagVenues                                   Sentiment/ScoreTweets
+      |                \                   \                   /                                                              |
+      |                 \                TwitterLocations/CombineTweetsVenues                                 Sentiment/TweetSentimentTable
+      |                  \                              |                                                       /
+      |                   \              TwitterLocations/TwitterLocations                                     /
+      |                    \                                                                                  /
+Collocation/Count           \                                                                                /
+ | (place value in binary)   Collocation/PartialCounts                                                      /
+ |                          /                                                                              /
+  \                       /                                                                               /
+   Collocation/LLR   ----/                                                                               /
+        |                                                                                               /
+  Collocation/Filter (hard codes count threshold)                                                      /
+        |                                                                                             /
+   Collocation/CombineWordsTweets                                                                    /
+        |                                                                                           /
+    Collocation/TweetSearch                                                                        /
+                          \                                                                       /
+                           \                                                                     /
+                          TwitterLocation/CombineLocationsAndTweetSentiment---------------------/
+                                                        /
+  TwitterLocations/TwitterLocations (repeated)         /
+                                \                     /
+                              TwitterLocations/CombineLocationsAndTweetSentiment
+
+Foursquare/CleanFoursquare - given venues from foursquare for many cities produce the set of cities that each venue (by name) appears in.  Also deduplicates venues.  All venue names appear in canonicalized form (no punctuation, all whitespace is a single space, stripped)
+
+Foursquare/UniqueVenues - Ignore any venue that appears in multiple cities.  The remaining output is (venue, city) for venues that are unique to that city
+
+Foursquare/TagVenues - add a tag to the venues list so it can be mixed with other data
+
+Twitter/CleanTweets - given a raw dump of tweets do the following:
+parse JSON, 1 tweet per line
+only keep tweets that we really want -- those with a text field
+write out 1 tweet per line, keeping user id, tweet id, and tweet text
+
+Twitter/TagTwitter - given clean tweet data map to just take the tweet text, user, and a symbol denoting this line is a tweet.  This is necessary for finding tweeters from a region
+
+TwitterLocations/CombineTweetsVenues - read in both tweets and venues.  Every tweet emits as k: word, v: (canonicalized text, tweeter, "twitter").  Do this for each unique word so we are guaranteed that matches between a tweet and venue will hit.  all venuues emite as k: word, v: (canonicalized text, city, "venue").  Do only for first word in venue name.
+In the reduce phase, for every word key (ignore what word it is), create a set of (venue, city)s and a set of (tweet text, tweeter)s.  Search every tweet for an exact match of every venue.  Matches should write out (tweeter, city).  No need to dedup since we only emit 1 word per venue and only unique words for each tweet
+
+TwitterLocations/TwitterLocations - combine (no map, keep key tweeter) cities by tweeter to determine if they truly "belong" to that city.  The threshold will be something like a tweeter belongs to a city if they tweet about 2 unique places in that city and tweet more about that city than all other cities combined.  Emit as (tweeter, city)
+
+Collocation/Count
+given clean tweets count the total number of relations
+
+Collocation/PartialCounts
+given clean tweets we want to find to number of times A and B occur
+together, the number of times A occurs, and the number of times B occurs.
+We do this as 2 steps and combine them in the next script.
+Map - for every unique pair of words in a tweet, A and B, emit:
+A: (B, 1)
+B: (A, 1)
+reduce - for each bin keyed with A, count total number of A, and for each
+paired word count the frequency of that pair.  For each pair emit:
+(A,B) : A, A count, AB count
+A must be < than be so that we never see (B,A)!! (wouldn't match)
+
+Collocation/LLR
+given CollocationPartialCounts output we will see consecutive lines giving
+(A,B), A count, B count, (A,B) count.  This is sufficient to produce the LLC.  emit
+(A,B): LLR, support (A,B)count
+
+Collocation/Filter
+reduce the LLR to remove: words less than 4 characters long, words with numbers,
+LLR scores below a thershold, counts below a threshold
+
+Collocation/CombineTweetsWords
+find our LLR words in the tweet corpus
+map: generate word keys for LLR and tweets.  each search term passes the related word in the value
+combine: for each word bin associate each search word with the tweet.
+Note: if multiple words each relate to a search term in a tweet may have multiple values of LLR for that word,
+fixed in next step
+
+Collocation/TweetSearch
+deduplicate search terms in each tweet by adding their count and taking the max LLR
+no map
+reduce keyed by twitterid.  In each bin find duplicate search terms
+
+Sentiment/TagSentiment
+using map, prepend each line with 'sentiment' so data can be mixed
+
+Sentiment/CombineTweetsSentiment
+map: keyed by word
+sentiments pass value
+tweets split on each word to pass (word, twitterid)
+combine: find the sentiment value in the bin (or pass if none)
+for each word in a bin with a sentiment score generate (twitterid, score)
+
+Sentiment/ScoreTweets
+Add up the sentiment per tweet
+no map (keyed by tweetid)
+reduce: add up scores in tweetid bin and generate (tweetid, total sentiment score)
+
+Sentiment/TweetSentimentTable
+Add sentiment scores to clean tweet data
+map: key by tweetid
+reduce: match tweet to tweet's sentiment score.  Give 0 score if nothing found
+
+TwitterLocations/CombineLocationsAndTweetSentiment
+Finally, combine locations with sentiment and tweet
+map: key by tweetid
+reduce: match tweet to tweet's location.  Give "None" and 0 for score if no city

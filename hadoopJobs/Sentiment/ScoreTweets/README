@@ -1,0 +1,7 @@
+Combine will produce a list of 
+twitter id, word score
+that simply need to be summed up
+
+no map
+
+reduce finds all scores in a group and emits the sum with the tweet id

@@ -1,0 +1,15 @@
+find tweeters that we suspect are in a given city
+For now assume that a person is in a city if:
+i) they tweet at least 2 locations from that city
+ii) they tweet from their home city > (strictly greater than) the time
+    they tweet from all other cities
+
+map: do nothing, pass through (user, city)
+
+reduce: for each user bin look at the occurance of each city.
+Only the city that occurs the most (mode) is a candidate
+(if 2 cities tie neither is considered the home city so doesn't matter
+which you consider)
+if occurance(max city) >= 2 and occurance(max city) > occurance(all cities)/2 (rounded down/truncated)
+emit (user, max city)
+

@@ -1,0 +1,13 @@
+given tagged tweets and word associations combine them so that we can match tweets to search terms
+
+map:
+if key == "tweet" for each word in text generate -- word: tweet id
+else have (word1, word2): score, count, generate (for each word) -- word: other_word, score, count
+
+reduce:
+if len(args) == 2 (a tweet), add to tweet set
+else (search word) add (other_word, score, count) to search_word_set
+
+when word bin is done generate, for each tweet-search_word pair:
+tweetid: search word, score, count
+for each tweet also generate tweetid: bin word, max_score, max_count

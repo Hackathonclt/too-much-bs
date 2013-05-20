@@ -1,0 +1,7 @@
+take in a raw dump of twitter JSON objects
+filter only to those we want (those with a 'text' field?)  and retain text, unique id, twitter handle, and user id
+
+mapper:
+read text, convert from JSON to python.  Determine if this is a userful tweet.  If so, write out fields we care about.
+
+no reducer:

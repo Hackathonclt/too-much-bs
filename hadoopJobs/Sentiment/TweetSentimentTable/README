@@ -1,0 +1,8 @@
+from the sentiment output and original clean tweets create a new clean tweets and add the sentiment scores
+
+map:
+generate all rows, tweetid first
+
+reduce:
+make sure we have 1 sentiment score and 1 tweet for each tweet id
+generate all tweet rows, sentiment score, sentiment count

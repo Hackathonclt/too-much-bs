@@ -1,0 +1,23 @@
+Find occurances of every venue unique to a city in every tweet
+inputs are:
+tweets as ('tweet', user id, canonical tweet text)
+venues as ('venue', name, city)
+
+map:
+if a tweet emit, for every unique word in the tweet (remove dups)
+(key: word, val: ('tweet', user, canonical tweet text)
+if a venue emit, for only the _first_ word of the venue
+(key: word, val: ('venue', name, city)
+
+at the reduce stage all true matches between a tweet and a venue will be
+located in the same word bucket (a word at the start of the venue and that
+appears in the tweet)
+
+no need to dedup: we must match in the bin for the first word of the venue,
+and a matching tweet only emitted that word once since we deduped
+
+reduce:
+for each word (ignore what the word actually is)
+compare every venue against every tweet in the bucket.
+If the venue name is located within the tweet emit:
+(twitter user, city)

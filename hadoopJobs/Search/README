@@ -1,0 +1,21 @@
+Search script!
+modify the query.py file to update the search parameters
+
+This script searches our database using hadoop to return:
+twitter text and user for all tweets that match search term, city, and sentiment
+filters by score thresholds.
+Threshold directions -- non-negative denotes great, negative means less than
+
+takes in the search word table and final tweet+sentiment+location table
+
+map:
+filter each dataset according to query.py parameters.
+generate twitterid: data
+reduce:
+return any twitterid that hit for both the search word and twitter data
+
+
+
+hadoop jar /usr/local/hadoop/contrib/streaming/hadoop-*streaming*.jar -file mapper.py -mapper mapper.py -file reducer.py -reducer reducer.py -input /user/hduser/TweetSentimentCity/part* -input /user/hduser/TweetSearch/part* -output /user/hduser/SearchResults
+
+hadoop dfs -rmr /user/hduser/SearchResults

@@ -1,0 +1,8 @@
+given clean tweets (id, tweet text, user id, user handle)
+where each whitespace in the tweet text is a single space
+
+produce lines of ('tweet', user id, canonical tweet text)
+only using a mapper
+canonical text contains only alphanumeric words, all lowercase, and single space whitespace.  (no punctuation, upper case, or special characters)
+
+we need this to match against foursquare venues

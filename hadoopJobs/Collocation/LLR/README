@@ -1,0 +1,32 @@
+Given the output of CollocationPartialCounts
+Passing through (no map) will place word pairs next to each other
+There will be entries for each pair -- one produced from the reduce bin of each word in the last step
+
+Need the total number of word pairs -- for now just put it in the script
+
+Given:
+(A,B): A, A frequency, (A,B) frequency
+(A,B): B, B frequency, (A,B) frequency
+
+compute the Log Likelihood Ratio (LLR) that 2 words occur together:
+see:
+https://cwiki.apache.org/MAHOUT/collocations.html
+http://tdunning.blogspot.com/2008/03/surprise-and-coincidence.html
+http://grepcode.com/file/repo1.maven.org/maven2/org.apache.mahout/mahout-math/0.3/org/apache/mahout/math/stats/LogLikelihood.java
+
+First, define the shannon entropy function, H
+define k11 = (A,B) frequency -- number of times A and B occur together
+define k21 = A frequency - (A,B) frequency -- frequency of A and not B
+define k12 = B frequency - (A,B) frequency -- frequency of B and not A
+define k22 = total pairs - (A frequency + B frequency - (A,B) frequency) -- frequency of not A and not B
+
+then
+row_entropy = H(k11, k12) + H(k21, k22)
+col_entropy = H(k11, k21) + H(k12, k22)
+matrix_entropy = H(k11, k12, k21, k22))
+
+LLR = 2*(matrix_entropy - row_entropy - column_entropy)
+support = (A,B) frequency
+
+emit:
+(A,B): LLR, support

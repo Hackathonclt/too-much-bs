@@ -1,0 +1,8 @@
+take in a raw list of foursquare data files, each of the form:
+<city>\t<venue uid>\t<venue name>\t<lat>\t<lon>
+
+map to produce:
+key: venue name, val: city
+
+reduce to produce (and write to file):
+key: venue name, val: set of cities that contain a venue with this name

@@ -1,0 +1,8 @@
+given a list of tweet: search word, score, count
+multiple words from a tweet may relate to a search word, add the count, take max score
+
+no map
+
+reduce:
+for tweet get dict of {word : [ (score, count) ]}
+generate -- search term, twitterid, (max of scores), (sum of count)

@@ -1,0 +1,13 @@
+given clean tweets and a sentiment dictionary (word to sentiment value):
+inputs are tweets of form:
+"tweet," tweet id, text
+"sentiment," word, value
+
+map:
+each tweet, each word maps to word: ("tweet", tweet id)
+each sentiment maps to word: ("sentiment", value)
+
+reduce:
+For the word bin if there are any tweets and a sentiment record that is non-zero:
+for each tweet emit tweet id: value
+if no sentiment emit a 0 to make sure tweet ends up in the output

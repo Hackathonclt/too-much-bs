@@ -1,0 +1,4 @@
+from TwitterTextUser parse the text and count the total number of word pairs
+map: For a tweet with words A,B,C... find the set of unique words, count number of unique pairs (N choose 2 = N!/(2(N-2)!)
+emit: 'key' : number unique pairs
+reduce: all rows go to a single key.  Add them all up

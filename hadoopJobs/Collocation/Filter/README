@@ -1,0 +1,1 @@
+Only keep associations with support (count) above a threshold.  There are a huge number of small-count associations so even a small number should help

@@ -1,0 +1,3 @@
+take in output from Foursquare/UniqueVenues:
+(name, city)
+additionally mark this line as as a "venue"

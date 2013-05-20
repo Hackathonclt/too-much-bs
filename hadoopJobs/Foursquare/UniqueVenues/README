@@ -1,0 +1,11 @@
+given 
+<venue name>\t<city1>\t<city2>...
+
+We want to produce a list of locations that are unique to a single city.  If there is only one city listed pass through as (venue, city).
+If there are multiple cities omit
+
+map to produce:
+key: venue name, val: city (only if one city in set)
+
+reduce to produce (and write to file):
+<no reduce function>

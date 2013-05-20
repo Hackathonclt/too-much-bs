@@ -1,0 +1,18 @@
+For collcation we need to find:
+total number of pairs in the corpus (found by CollocationCount)
+and for every combination of words that appear together, (A,B):
+how often (A,B) occur together
+how often A occurs but not B (equiv. how often A occurs and we know how often (A,B) occurs)
+how often B occurs but not B (equiv. ")
+
+This script finds these values so that we can use them in the next
+
+Map:
+For each tweet and each unique pair of words (A,B) emit:
+A: (B, 1)
+B: (A, 1)
+
+Reduce:
+Each bin gives us all pairs of words that we see with a given word.  Find total frequency of that word and the pairs of frequencies with all other words
+for each pair emit, and make sure A and B in the key are sorted:
+(A,B): A, frequency of A, frequency of (A,B)

@@ -1,0 +1,8 @@
+-- example of how to use streaming.  Make sure the py functions are chmod +x
+hadoop jar /usr/local/hadoop/contrib/streaming/hadoop-*streaming*.jar -file mapper.py -mapper mapper.py -file reducer.py -reducer reducer.py -input /user/hduser/gutenberg/* -output /user/hduser/gutenberg-output
+
+-- see a file on hdfs
+hadoop dfs -cat /user/hduser/foursquare_CitySet/part-00000 | less
+
+-- remove file on hdfs
+hadoop dfs -rmr /user/hduser/foursquare_CitySet
